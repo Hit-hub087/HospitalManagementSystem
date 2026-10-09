@@ -1,35 +1,27 @@
 package main;
 
-import constants.AppConstants;
-import constants.Messages;
 import dao.AppointmentDAO;
 import dao.DoctorDAO;
 import dao.PatientDAO;
 import model.Appointment;
 import model.Doctor;
 import model.Patient;
-import service.AppointmentService;
-import service.DoctorService;
-import service.PatientService;
-import service.ReportService;
 import util.InputValidator;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 
 public class HospitalMenu {
 
-    private static final Scanner SC = new Scanner(System.in);
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(AppConstants.DATE_PATTERN);
+    // DAO objects — created once and reused throughout
+    private static PatientDAO     patientDAO     = new PatientDAO();
+    private static DoctorDAO      doctorDAO      = new DoctorDAO();
+    private static AppointmentDAO appointmentDAO = new AppointmentDAO();
+    private static Scanner        sc             = new Scanner(System.in);
 
-    private static final PatientService patientService = new PatientService(new PatientDAO());
-    private static final DoctorService doctorService = new DoctorService(new DoctorDAO());
-    private static final AppointmentService appointmentService = new AppointmentService(new AppointmentDAO());
-    private static final ReportService reportService = new ReportService(new AppointmentDAO(), new PatientDAO());
-
+    // ─────────────────────────────────────────
+    //  MAIN MENU
+    // ─────────────────────────────────────────
     public static void showMainMenu() {
         while (true) {
             System.out.println("\n╔══════════════════════════════════════╗");
@@ -39,496 +31,406 @@ public class HospitalMenu {
             System.out.println("║  2. Doctor Management                ║");
             System.out.println("║  3. Appointment Management           ║");
             System.out.println("║  4. Search                           ║");
-            System.out.println("║  5. Reports                          ║");
-            System.out.println("║  6. Exit                             ║");
+            System.out.println("║  5. Exit                             ║");
             System.out.println("╚══════════════════════════════════════╝");
+            System.out.print("Enter your choice: ");
 
-            switch (readInt("Enter your choice: ")) {
-                case 1 -> showPatientMenu();
-                case 2 -> showDoctorMenu();
-                case 3 -> showAppointmentMenu();
-                case 4 -> showSearchMenu();
-                case 5 -> showReportsMenu();
-                case 6 -> {
+            int choice = getIntInput();
+
+            switch (choice) {
+                case 1: showPatientMenu();      break;
+                case 2: showDoctorMenu();       break;
+                case 3: showAppointmentMenu();  break;
+                case 4: showSearchMenu();       break;
+                case 5:
                     System.out.println("\nThank you for using Hospital Management System. Goodbye!");
-                    SC.close();
-                    return;
-                }
-                default -> System.out.println(Messages.INVALID_MENU_CHOICE);
+                    sc.close();
+                    System.exit(0);
+                    break;
+                default:
+                    System.out.println("Invalid choice! Please enter 1 to 5.");
             }
         }
     }
 
-    private static void showPatientMenu() {
+    // ─────────────────────────────────────────
+    //  PATIENT MENU
+    // ─────────────────────────────────────────
+    public static void showPatientMenu() {
         while (true) {
             System.out.println("\n╔══════════════════════════════╗");
             System.out.println("║      PATIENT MANAGEMENT      ║");
             System.out.println("╠══════════════════════════════╣");
             System.out.println("║  1. Add New Patient          ║");
             System.out.println("║  2. View All Patients        ║");
-            System.out.println("║  3. View Patients (A-Z)      ║");
-            System.out.println("║  4. Search Patient by Name   ║");
-            System.out.println("║  5. Find Patient by ID       ║");
-            System.out.println("║  6. Update Patient           ║");
-            System.out.println("║  7. Delete Patient           ║");
-            System.out.println("║  8. Back to Main Menu        ║");
+            System.out.println("║  3. Search Patient by Name   ║");
+            System.out.println("║  4. Delete Patient           ║");
+            System.out.println("║  5. Back to Main Menu        ║");
             System.out.println("╚══════════════════════════════╝");
+            System.out.print("Enter your choice: ");
 
-            switch (readInt("Enter your choice: ")) {
-                case 1 -> addPatient();
-                case 2 -> printPagedList(patientService.getAllPatients(), "All Patients");
-                case 3 -> printPagedList(patientService.getAllPatientsSorted(), "Patients (A-Z)");
-                case 4 -> searchPatient();
-                case 5 -> findPatientById();
-                case 6 -> updatePatient();
-                case 7 -> deletePatient();
-                case 8 -> {
-                    return;
-                }
-                default -> System.out.println(Messages.INVALID_MENU_CHOICE);
+            int choice = getIntInput();
+
+            switch (choice) {
+                case 1: addPatient();         break;
+                case 2: viewAllPatients();    break;
+                case 3: searchPatient();      break;
+                case 4: deletePatient();      break;
+                case 5: return; // goes back to main menu
+                default:
+                    System.out.println("Invalid choice!");
             }
         }
     }
 
-    private static void showDoctorMenu() {
+    // ─────────────────────────────────────────
+    //  DOCTOR MENU
+    // ─────────────────────────────────────────
+    public static void showDoctorMenu() {
         while (true) {
             System.out.println("\n╔══════════════════════════════╗");
             System.out.println("║      DOCTOR MANAGEMENT       ║");
             System.out.println("╠══════════════════════════════╣");
             System.out.println("║  1. View All Doctors         ║");
-            System.out.println("║  2. View Doctors (A-Z)       ║");
-            System.out.println("║  3. Search Doctor by Name    ║");
-            System.out.println("║  4. Back to Main Menu        ║");
+            System.out.println("║  2. Search Doctor by Name    ║");
+            System.out.println("║  3. Back to Main Menu        ║");
             System.out.println("╚══════════════════════════════╝");
+            System.out.print("Enter your choice: ");
 
-            switch (readInt("Enter your choice: ")) {
-                case 1 -> printPagedList(doctorService.getAllDoctors(), "All Doctors");
-                case 2 -> printPagedList(doctorService.getAllDoctorsSorted(), "Doctors (A-Z)");
-                case 3 -> searchDoctor();
-                case 4 -> {
-                    return;
-                }
-                default -> System.out.println(Messages.INVALID_MENU_CHOICE);
+            int choice = getIntInput();
+
+            switch (choice) {
+                case 1: viewAllDoctors();  break;
+                case 2: searchDoctor();    break;
+                case 3: return;
+                default:
+                    System.out.println("Invalid choice!");
             }
         }
     }
 
-    private static void showAppointmentMenu() {
+    // ─────────────────────────────────────────
+    //  APPOINTMENT MENU
+    // ─────────────────────────────────────────
+    public static void showAppointmentMenu() {
         while (true) {
-            System.out.println("\n╔══════════════════════════════════════╗");
-            System.out.println("║      APPOINTMENT MANAGEMENT          ║");
-            System.out.println("╠══════════════════════════════════════╣");
-            System.out.println("║  1. Book Appointment                 ║");
-            System.out.println("║  2. View All Appointments            ║");
-            System.out.println("║  3. View Appointments by Patient     ║");
-            System.out.println("║  4. View Appointments by Doctor      ║");
-            System.out.println("║  5. View Appointments by Date        ║");
-            System.out.println("║  6. View Appointments by Status      ║");
-            System.out.println("║  7. View Doctor Schedule (by date)   ║");
-            System.out.println("║  8. Reschedule Appointment           ║");
-            System.out.println("║  9. Update Appointment Status        ║");
-            System.out.println("║ 10. Cancel Appointment               ║");
-            System.out.println("║ 11. Back to Main Menu                ║");
-            System.out.println("╚══════════════════════════════════════╝");
+            System.out.println("\n╔══════════════════════════════════╗");
+            System.out.println("║    APPOINTMENT MANAGEMENT        ║");
+            System.out.println("╠══════════════════════════════════╣");
+            System.out.println("║  1. Book Appointment             ║");
+            System.out.println("║  2. View All Appointments        ║");
+            System.out.println("║  3. View Appointments by Patient ║");
+            System.out.println("║  4. Cancel Appointment           ║");
+            System.out.println("║  5. Back to Main Menu            ║");
+            System.out.println("╚══════════════════════════════════╝");
+            System.out.print("Enter your choice: ");
 
-            switch (readInt("Enter your choice: ")) {
-                case 1 -> bookAppointment();
-                case 2 -> printPagedList(appointmentService.getAllAppointments(), "All Appointments");
-                case 3 -> viewAppointmentsByPatient();
-                case 4 -> viewAppointmentsByDoctor();
-                case 5 -> viewAppointmentsByDate();
-                case 6 -> viewAppointmentsByStatus();
-                case 7 -> viewDoctorSchedule();
-                case 8 -> rescheduleAppointment();
-                case 9 -> updateAppointmentStatus();
-                case 10 -> cancelAppointment();
-                case 11 -> {
-                    return;
-                }
-                default -> System.out.println(Messages.INVALID_MENU_CHOICE);
+            int choice = getIntInput();
+
+            switch (choice) {
+                case 1: bookAppointment();              break;
+                case 2: viewAllAppointments();          break;
+                case 3: viewAppointmentsByPatient();    break;
+                case 4: cancelAppointment();            break;
+                case 5: return;
+                default:
+                    System.out.println("Invalid choice!");
             }
         }
     }
 
-    private static void showSearchMenu() {
+    // ─────────────────────────────────────────
+    //  SEARCH MENU
+    // ─────────────────────────────────────────
+    public static void showSearchMenu() {
         while (true) {
             System.out.println("\n╔══════════════════════════════╗");
-            System.out.println("║            SEARCH            ║");
+            System.out.println("║         SEARCH               ║");
             System.out.println("╠══════════════════════════════╣");
             System.out.println("║  1. Search Patient by Name   ║");
             System.out.println("║  2. Search Doctor by Name    ║");
             System.out.println("║  3. Find Patient by ID       ║");
             System.out.println("║  4. Back to Main Menu        ║");
             System.out.println("╚══════════════════════════════╝");
+            System.out.print("Enter your choice: ");
 
-            switch (readInt("Enter your choice: ")) {
-                case 1 -> searchPatient();
-                case 2 -> searchDoctor();
-                case 3 -> findPatientById();
-                case 4 -> {
-                    return;
-                }
-                default -> System.out.println(Messages.INVALID_MENU_CHOICE);
+            int choice = getIntInput();
+
+            switch (choice) {
+                case 1: searchPatient();   break;
+                case 2: searchDoctor();    break;
+                case 3: findPatientById(); break;
+                case 4: return;
+                default:
+                    System.out.println("Invalid choice!");
             }
         }
     }
 
-    private static void showReportsMenu() {
-        while (true) {
-            System.out.println("\n╔══════════════════════════════╗");
-            System.out.println("║           REPORTS            ║");
-            System.out.println("╠══════════════════════════════╣");
-            System.out.println("║  1. Dashboard Summary        ║");
-            System.out.println("║  2. Daily Appointment Report ║");
-            System.out.println("║  3. Weekly Appointment Report║");
-            System.out.println("║  4. Most Visited Doctors     ║");
-            System.out.println("║  5. Patient History          ║");
-            System.out.println("║  6. Back to Main Menu        ║");
-            System.out.println("╚══════════════════════════════╝");
-
-            switch (readInt("Enter your choice: ")) {
-                case 1 -> printDashboard();
-                case 2 -> printDailyReport();
-                case 3 -> printWeeklyReport();
-                case 4 -> printMostVisitedDoctors();
-                case 5 -> printPatientHistory();
-                case 6 -> {
-                    return;
-                }
-                default -> System.out.println(Messages.INVALID_MENU_CHOICE);
-            }
-        }
-    }
+    // ═════════════════════════════════════════
+    //  PATIENT OPERATIONS
+    // ═════════════════════════════════════════
 
     private static void addPatient() {
         System.out.println("\n--- Add New Patient ---");
-        String name = readValidName("Enter name: ");
-        int age = readValidAge("Enter age: ");
-        String gender = readValidGender("Enter gender (Male/Female/Other): ");
-        String phone = readValidPhone("Enter phone (10 digits): ");
-        String disease = readValidDisease("Enter disease/symptoms: ");
 
-        boolean result = patientService.addPatient(new Patient(0, name, age, gender, phone, disease));
-        System.out.println(result ? "Patient added successfully." : "Failed to add patient.");
-    }
-
-    private static void updatePatient() {
-        System.out.println("\n--- Update Patient ---");
-        int id = readValidId("Enter patient ID to update: ");
-        Patient existing = patientService.getById(id);
-        if (existing == null) {
-            System.out.println("No patient found with ID: " + id);
-            return;
+        // Name with retry
+        String name = "";
+        while (true) {
+            System.out.print("Enter name: ");
+            name = sc.nextLine().trim();
+            if (InputValidator.isValidName(name)) break;
+            System.out.println("Invalid name! Cannot be empty.");
         }
 
-        System.out.println("Current: " + existing);
-        String name = readValidName("Enter new name: ");
-        int age = readValidAge("Enter new age: ");
-        String gender = readValidGender("Enter new gender (Male/Female/Other): ");
-        String phone = readValidPhone("Enter new phone (10 digits): ");
-        String disease = readValidDisease("Enter new disease/symptoms: ");
+        // Age with retry
+        int age = 0;
+        while (true) {
+            System.out.print("Enter age: ");
+            age = getIntInput();
+            if (InputValidator.isValidAge(age)) break;
+            System.out.println("Invalid age! Must be between 1 and 120.");
+        }
 
-        boolean updated = patientService.updatePatient(new Patient(id, name, age, gender, phone, disease));
-        System.out.println(updated ? "Patient updated successfully." : "Failed to update patient.");
+        // Gender with retry
+        String gender = "";
+        while (true) {
+            System.out.print("Enter gender (Male/Female/Other): ");
+            gender = sc.nextLine().trim();
+            if (InputValidator.isValidGender(gender)) break;
+            System.out.println("Invalid! Please enter Male, Female, or Other.");
+        }
+
+        // Phone with retry
+        String phone = "";
+        while (true) {
+            System.out.print("Enter phone (10 digits): ");
+            phone = sc.nextLine().trim();
+            if (InputValidator.isValidPhone(phone)) break;
+            System.out.println("Invalid phone! Must be exactly 10 digits.");
+        }
+
+        // Disease with retry
+        String disease = "";
+        while (true) {
+            System.out.print("Enter disease/symptoms: ");
+            disease = sc.nextLine().trim();
+            if (InputValidator.isValidName(disease)) break;
+            System.out.println("Cannot be empty!");
+        }
+
+        Patient p = new Patient(0, name, age, gender, phone, disease);
+        boolean result = patientDAO.addPatient(p);
+
+        if (result) {
+            System.out.println("Patient added successfully!");
+        } else {
+            System.out.println("Failed to add patient. Please try again.");
+        }
+    }
+
+    private static void viewAllPatients() {
+        System.out.println("\n--- All Patients ---");
+        List<Patient> list = patientDAO.getAllPatients();
+        if (list.isEmpty()) {
+            System.out.println("No patients found.");
+            return;
+        }
+        printDivider();
+        for (Patient p : list) {
+            System.out.println(p);
+        }
+        printDivider();
+        System.out.println("Total patients: " + list.size());
     }
 
     private static void searchPatient() {
-        String name = readLine("\nEnter patient name to search: ").trim();
-        printPagedList(patientService.searchByName(name), "Patient Search Results");
+        System.out.print("\nEnter patient name to search: ");
+        String name = sc.nextLine().trim();
+        List<Patient> list = patientDAO.searchPatientByName(name);
+        if (list.isEmpty()) {
+            System.out.println("No patients found with name: " + name);
+            return;
+        }
+        printDivider();
+        for (Patient p : list) {
+            System.out.println(p);
+        }
+        printDivider();
     }
 
     private static void findPatientById() {
-        int id = readValidId("\nEnter patient ID: ");
-        Patient patient = patientService.getById(id);
-        if (patient == null) {
+        System.out.print("\nEnter patient ID: ");
+        int id = getIntInput();
+        Patient p = patientDAO.getPatientById(id);
+        if (p == null) {
             System.out.println("No patient found with ID: " + id);
         } else {
             printDivider();
-            System.out.println(patient);
+            System.out.println(p);
             printDivider();
         }
     }
 
     private static void deletePatient() {
-        int id = readValidId("\nEnter patient ID to delete: ");
-        Patient patient = patientService.getById(id);
-        if (patient == null) {
+        System.out.print("\nEnter patient ID to delete: ");
+        int id = getIntInput();
+
+        Patient p = patientDAO.getPatientById(id);
+        if (p == null) {
             System.out.println("No patient found with ID: " + id);
             return;
         }
 
-        String confirm = readLine("Are you sure you want to delete " + patient.getName() + "? (yes/no): ");
-        if ("yes".equalsIgnoreCase(confirm.trim())) {
-            boolean deleted = patientService.deleteById(id);
-            System.out.println(deleted ? "Patient deleted." : "Delete failed.");
+        System.out.println("Are you sure you want to delete: " + p.getName() + "? (yes/no): ");
+        String confirm = sc.nextLine().trim();
+        if (confirm.equalsIgnoreCase("yes")) {
+            boolean result = patientDAO.deletePatient(id);
+            System.out.println(result ? "Patient deleted." : "Delete failed.");
         } else {
             System.out.println("Delete cancelled.");
         }
     }
 
-    private static void searchDoctor() {
-        String name = readLine("\nEnter doctor name to search: ").trim();
-        printPagedList(doctorService.searchByName(name), "Doctor Search Results");
+    // ═════════════════════════════════════════
+    //  DOCTOR OPERATIONS
+    // ═════════════════════════════════════════
+
+    private static void viewAllDoctors() {
+        System.out.println("\n--- All Doctors ---");
+        List<Doctor> list = doctorDAO.getAllDoctors();
+        if (list.isEmpty()) {
+            System.out.println("No doctors found.");
+            return;
+        }
+        printDivider();
+        for (Doctor d : list) {
+            System.out.println(d);
+        }
+        printDivider();
+        System.out.println("Total doctors: " + list.size());
     }
+
+    private static void searchDoctor() {
+        System.out.print("\nEnter doctor name to search: ");
+        String name = sc.nextLine().trim();
+        List<Doctor> list = doctorDAO.searchDoctorByName(name);
+        if (list.isEmpty()) {
+            System.out.println("No doctors found with name: " + name);
+            return;
+        }
+        printDivider();
+        for (Doctor d : list) {
+            System.out.println(d);
+        }
+        printDivider();
+    }
+
+    // ═════════════════════════════════════════
+    //  APPOINTMENT OPERATIONS
+    // ═════════════════════════════════════════
 
     private static void bookAppointment() {
         System.out.println("\n--- Book Appointment ---");
 
-        printPagedList(patientService.getAllPatientsSorted(), "Available Patients");
-        int patientId = readValidId("Enter Patient ID: ");
-        if (patientService.getById(patientId) == null) {
-            System.out.println("Patient not found.");
+        // Show all patients first
+        System.out.println("Available Patients:");
+        viewAllPatients();
+        System.out.print("Enter Patient ID: ");
+        int patientId = getIntInput();
+
+        if (patientDAO.getPatientById(patientId) == null) {
+            System.out.println("Patient not found!");
             return;
         }
 
-        printPagedList(doctorService.getAllDoctorsSorted(), "Available Doctors");
-        int doctorId = readValidId("Enter Doctor ID: ");
-        if (doctorService.getById(doctorId) == null) {
-            System.out.println("Doctor not found.");
+        // Show all doctors
+        System.out.println("\nAvailable Doctors:");
+        viewAllDoctors();
+        System.out.print("Enter Doctor ID: ");
+        int doctorId = getIntInput();
+
+        if (doctorDAO.getDoctorById(doctorId) == null) {
+            System.out.println("Doctor not found!");
             return;
         }
 
-        String date = readValidDate("Enter date (DD-MM-YYYY): ", true);
-
-        printDoctorScheduleForBooking(doctorId, date);
-        System.out.println("Available slots: " + String.join("  ", AppConstants.VALID_TIME_SLOTS));
-        String slot = readValidTimeSlot("Enter time slot: ");
-
-        Appointment appointment = new Appointment(0, patientId, doctorId, date, slot, AppConstants.STATUS_SCHEDULED);
-        boolean booked = appointmentService.bookAppointment(appointment);
-        System.out.println(booked ? "Appointment booked successfully." : "Booking failed. Slot may already be taken.");
-    }
-
-    private static void viewAppointmentsByPatient() {
-        int id = readValidId("\nEnter Patient ID: ");
-        printPagedList(appointmentService.getByPatient(id), "Appointments for Patient ID " + id);
-    }
-
-    private static void viewAppointmentsByDoctor() {
-        int id = readValidId("\nEnter Doctor ID: ");
-        printPagedList(appointmentService.getByDoctor(id), "Appointments for Doctor ID " + id);
-    }
-
-    private static void viewAppointmentsByDate() {
-        String date = readValidDate("\nEnter date (DD-MM-YYYY): ", false);
-        printPagedList(appointmentService.getByDate(date), "Appointments on " + date);
-    }
-
-    private static void viewAppointmentsByStatus() {
-        String status = readLine("\nEnter status (Scheduled/Completed/Cancelled): ").trim();
-        printPagedList(appointmentService.getByStatus(status), "Appointments with status " + status);
-    }
-
-    private static void viewDoctorSchedule() {
-        int doctorId = readValidId("\nEnter Doctor ID: ");
-        String date = readValidDate("Enter date (DD-MM-YYYY): ", false);
-        printPagedList(appointmentService.getDoctorSchedule(doctorId, date), "Doctor " + doctorId + " Schedule on " + date);
-    }
-
-    private static void rescheduleAppointment() {
-        int id = readValidId("\nEnter Appointment ID to reschedule: ");
-        if (!appointmentService.appointmentExists(id)) {
-            System.out.println("No appointment found with ID: " + id);
+        System.out.print("Enter date (DD-MM-YYYY): ");
+        String date = sc.nextLine().trim();
+        if (!InputValidator.isValidDate(date)) {
+            System.out.println("Invalid date format! Use DD-MM-YYYY.");
             return;
         }
 
-        String newDate = readValidDate("Enter new date (DD-MM-YYYY): ", true);
-        String newSlot = readValidTimeSlot("Enter new time slot: ");
-
-        boolean result = appointmentService.rescheduleAppointment(id, newDate, newSlot);
-        System.out.println(result ? "Appointment rescheduled successfully." : "Reschedule failed. Slot may already be taken.");
-    }
-
-    private static void updateAppointmentStatus() {
-        int id = readValidId("\nEnter Appointment ID: ");
-        if (!appointmentService.appointmentExists(id)) {
-            System.out.println("No appointment found with ID: " + id);
+        System.out.println("Available slots: 09:00  10:00  11:00  12:00  14:00  15:00  16:00  17:00");
+        System.out.print("Enter time slot: ");
+        String slot = sc.nextLine().trim();
+        if (!InputValidator.isValidTimeSlot(slot)) {
+            System.out.println("Invalid time slot!");
             return;
         }
 
-        String status = readLine("Enter new status (Scheduled/Completed/Cancelled): ").trim();
-        boolean updated = appointmentService.updateAppointmentStatus(id, status);
-        System.out.println(updated ? "Appointment status updated." : "Status update failed.");
+        Appointment a = new Appointment(0, patientId, doctorId, date, slot, "Scheduled");
+        boolean result = appointmentDAO.bookAppointment(a);
+
+        if (result) {
+            System.out.println("Appointment booked successfully!");
+        } else {
+            System.out.println("Booking failed. Slot may already be taken.");
+        }
     }
 
-    private static void cancelAppointment() {
-        int id = readValidId("\nEnter Appointment ID to cancel: ");
-        boolean result = appointmentService.cancelAppointment(id);
-        System.out.println(result ? "Appointment cancelled successfully." : "Cancellation failed.");
-    }
-
-    private static void printDashboard() {
-        System.out.println("\n--- Dashboard ---");
-        Map<String, Integer> dashboard = reportService.getDashboardCounts();
-        dashboard.forEach((k, v) -> System.out.println(k + ": " + v));
-    }
-
-    private static void printDailyReport() {
-        String date = readValidDate("\nEnter date (DD-MM-YYYY): ", false);
-        System.out.println("\n--- Daily Report: " + date + " ---");
-        reportService.getDailyReport(date).forEach((k, v) -> System.out.println(k + ": " + v));
-    }
-
-    private static void printWeeklyReport() {
-        String start = readValidDate("\nEnter start date (DD-MM-YYYY): ", false);
-        LocalDate startDate = LocalDate.parse(start, DATE_FORMATTER);
-        System.out.println("\n--- Weekly Report ---");
-        reportService.getWeeklyReport(startDate).forEach((k, v) -> System.out.println(k + ": " + v));
-    }
-
-    private static void printMostVisitedDoctors() {
-        System.out.println("\n--- Most Visited Doctors ---");
-        List<String> rows = reportService.getMostVisitedDoctors();
-        if (rows.isEmpty()) {
+    private static void viewAllAppointments() {
+        System.out.println("\n--- All Appointments ---");
+        List<Appointment> list = appointmentDAO.getAllAppointments();
+        if (list.isEmpty()) {
             System.out.println("No appointments found.");
             return;
         }
-        rows.forEach(System.out::println);
+        printDivider();
+        for (Appointment a : list) {
+            System.out.println(a);
+        }
+        printDivider();
+        System.out.println("Total appointments: " + list.size());
     }
 
-    private static void printPatientHistory() {
-        int patientId = readValidId("\nEnter Patient ID: ");
-        printPagedList(reportService.getPatientHistory(patientId), "Patient History");
+    private static void viewAppointmentsByPatient() {
+        System.out.print("\nEnter Patient ID: ");
+        int id = getIntInput();
+        List<Appointment> list = appointmentDAO.getAppointmentsByPatient(id);
+        if (list.isEmpty()) {
+            System.out.println("No appointments found for patient ID: " + id);
+            return;
+        }
+        printDivider();
+        for (Appointment a : list) {
+            System.out.println(a);
+        }
+        printDivider();
     }
 
-    private static int readInt(String prompt) {
+    private static void cancelAppointment() {
+        System.out.print("\nEnter Appointment ID to cancel: ");
+        int id = getIntInput();
+        boolean result = appointmentDAO.cancelAppointment(id);
+        System.out.println(result ? "Appointment cancelled successfully!" : "Cancellation failed.");
+    }
+
+    // ═════════════════════════════════════════
+    //  HELPER METHODS
+    // ═════════════════════════════════════════
+
+    // Safely reads an integer — handles wrong input without crashing
+    private static int getIntInput() {
         while (true) {
-            String value = readLine(prompt);
             try {
-                return Integer.parseInt(value.trim());
+                int val = Integer.parseInt(sc.nextLine().trim());
+                return val;
             } catch (NumberFormatException e) {
-                System.out.println(Messages.INVALID_NUMBER);
+                System.out.print("Please enter a valid number: ");
             }
         }
-    }
-
-    private static int readValidId(String prompt) {
-        while (true) {
-            int id = readInt(prompt);
-            if (InputValidator.isValidPositiveId(id)) {
-                return id;
-            }
-            System.out.println(Messages.INVALID_ID);
-        }
-    }
-
-    private static String readValidName(String prompt) {
-        while (true) {
-            String value = readLine(prompt).trim();
-            if (InputValidator.isValidName(value)) {
-                return value;
-            }
-            System.out.println(Messages.INVALID_NAME);
-        }
-    }
-
-    private static int readValidAge(String prompt) {
-        while (true) {
-            int age = readInt(prompt);
-            if (InputValidator.isValidAge(age)) {
-                return age;
-            }
-            System.out.println(Messages.INVALID_AGE);
-        }
-    }
-
-    private static String readValidGender(String prompt) {
-        while (true) {
-            String value = readLine(prompt).trim();
-            if (InputValidator.isValidGender(value)) {
-                return value;
-            }
-            System.out.println(Messages.INVALID_GENDER);
-        }
-    }
-
-    private static String readValidPhone(String prompt) {
-        while (true) {
-            String value = readLine(prompt).trim();
-            if (InputValidator.isValidPhone(value)) {
-                return value;
-            }
-            System.out.println(Messages.INVALID_PHONE);
-        }
-    }
-
-    private static String readValidDisease(String prompt) {
-        while (true) {
-            String value = readLine(prompt).trim();
-            if (InputValidator.isValidDisease(value)) {
-                return value;
-            }
-            System.out.println(Messages.INVALID_DISEASE);
-        }
-    }
-
-    private static String readValidDate(String prompt, boolean mustBeFutureOrToday) {
-        while (true) {
-            String value = readLine(prompt).trim();
-            LocalDate date = InputValidator.parseDate(value);
-            if (date != null && (!mustBeFutureOrToday || InputValidator.isFutureOrToday(date))) {
-                return value;
-            }
-            System.out.println(Messages.INVALID_DATE);
-        }
-    }
-
-    private static String readValidTimeSlot(String prompt) {
-        while (true) {
-            String value = readLine(prompt).trim();
-            if (InputValidator.isValidTimeSlot(value)) {
-                return value;
-            }
-            System.out.println(Messages.INVALID_TIME_SLOT);
-        }
-    }
-
-    private static void printPagedList(List<?> list, String title) {
-        System.out.println("\n--- " + title + " ---");
-        if (list == null || list.isEmpty()) {
-            System.out.println("No records found.");
-            return;
-        }
-
-        int pageSize = AppConstants.PAGE_SIZE;
-        int totalPages = (int) Math.ceil((double) list.size() / pageSize);
-
-        for (int page = 0; page < totalPages; page++) {
-            int start = page * pageSize;
-            int end = Math.min(start + pageSize, list.size());
-
-            printDivider();
-            for (int i = start; i < end; i++) {
-                System.out.println(list.get(i));
-            }
-            printDivider();
-            System.out.println("Page " + (page + 1) + " of " + totalPages + " | Total records: " + list.size());
-
-            if (page < totalPages - 1) {
-                String input = readLine("Press Enter for next page or type 'back' to stop: ");
-                if ("back".equalsIgnoreCase(input.trim())) {
-                    return;
-                }
-            }
-        }
-    }
-
-    private static void printDoctorScheduleForBooking(int doctorId, String date) {
-        List<Appointment> schedule = appointmentService.getDoctorSchedule(doctorId, date);
-        if (schedule.isEmpty()) {
-            System.out.println("No booked slots for this doctor on " + date + ".");
-            return;
-        }
-
-        System.out.println("Booked slots for doctor " + doctorId + " on " + date + ":");
-        schedule.stream()
-                .filter(a -> AppConstants.STATUS_SCHEDULED.equalsIgnoreCase(a.getStatus()))
-                .forEach(a -> System.out.println("- " + a.getTimeSlot() + " (Appointment ID: " + a.getAppointmentId() + ")"));
-    }
-
-    private static String readLine(String prompt) {
-        System.out.print(prompt);
-        return SC.nextLine();
     }
 
     private static void printDivider() {
